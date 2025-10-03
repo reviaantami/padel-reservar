@@ -55,7 +55,7 @@ export function RevenueChart({ transactions }: RevenueChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revenue Overview</CardTitle>
+        <CardTitle className="text-center">Pendapatan Bulan Ini</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[200px]">
@@ -73,16 +73,16 @@ export function RevenueChart({ transactions }: RevenueChartProps) {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => `Rp${value.toLocaleString('id-ID')}`}
+                tickFormatter={(value) => `Rp${(value/1000000).toFixed(1)}M`}
               />
               <Tooltip 
-                formatter={(value: any) => [`Rp${parseInt(value).toLocaleString('id-ID')}`, 'Revenue']}
+                formatter={(value: any) => [`Rp${parseInt(value).toLocaleString('id-ID')}`, 'Pendapatan']}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
               />
               <Bar
                 dataKey="total"
-                fill="currentColor"
+                fill="#0ea5e9"
                 radius={[4, 4, 0, 0]}
-                className="fill-primary"
               />
             </BarChart>
           </ResponsiveContainer>
