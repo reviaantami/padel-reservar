@@ -25,7 +25,8 @@ export default function AdminFinancial() {
             created_at,
             total_price,
             payment_status,
-            profiles (
+            user_id,
+            users:user_id (
               full_name
             )
           `)
@@ -38,7 +39,7 @@ export default function AdminFinancial() {
         const transformedData: Transaction[] = data.map(booking => ({
           id: booking.id,
           date: booking.created_at,
-          customerName: booking.profiles?.full_name || 'Unknown',
+          customerName: booking.users?.full_name || 'Unknown',
           amount: booking.total_price,
           status: booking.payment_status === 'success' ? 'paid' : 
                  booking.payment_status === 'pending' ? 'pending' : 'cancelled'
