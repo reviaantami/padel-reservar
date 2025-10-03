@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import heroPadel from '@/assets/hero-padel.jpg';
 import articlePadel from '@/assets/article-padel.jpg';
 
@@ -15,24 +15,74 @@ interface Article {
   created_at: string;
 }
 
+interface Field {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price_per_slot: number;
+  is_active: boolean | null;
+}
+
+const ITEMS_PER_PAGE = 6;
+
 const Home = () => {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [fields, setFields] = useState<Field[]>([]);
   const [heroBanner, setHeroBanner] = useState<string>('');
+  const [articlePage, setArticlePage] = useState(1);
+  const [fieldPage, setFieldPage] = useState(1);
+  const [totalArticles, setTotalArticles] = useState(0);
+  const [totalFields, setTotalFields] = useState(0);
 
   useEffect(() => {
-    fetchArticles();
+    fetchArticles(articlePage);
+    fetchFields(fieldPage);
     fetchHeroBanner();
-  }, []);
+  }, [articlePage, fieldPage]);
 
-  const fetchArticles = async () => {
-    const { data } = await supabase
-      .from('articles')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(3);
+  const fetchArticles = async (page: number) => {
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const [{ data: articles, count }, { data: total }] = await Promise.all([
+      supabase
+        .from('articles')
+        .select('*', { count: 'exact' })
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .range(from, to),
+      supabase
+        .from('articles')
+        .select('count', { count: 'exact' })
+        .eq('is_published', true)
+        .single()
+    ]);
     
-    if (data) setArticles(data);
+    if (articles) setArticles(articles);
+    if (count) setTotalArticles(count);
+  };
+
+  const fetchFields = async (page: number) => {
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const [{ data: fields, count }, { data: total }] = await Promise.all([
+      supabase
+        .from('fields')
+        .select('*', { count: 'exact' })
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .range(from, to),
+      supabase
+        .from('fields')
+        .select('count', { count: 'exact' })
+        .eq('is_active', true)
+        .single()
+    ]);
+    
+    if (fields) setFields(fields);
+    if (count) setTotalFields(count);
   };
 
   const fetchHeroBanner = async () => {
@@ -124,6 +174,73 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Fields Section */}
+      {fields.length > 0 && (
+        <section className="py-20 bg-gradient-to-b from-background/50 to-primary/5">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Lapangan Kami</h2>
+              <p className="text-muted-foreground">
+                Pilih lapangan padel sesuai dengan kebutuhan Anda
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {fields.map((field) => (
+                <Card key={field.id} className="overflow-hidden hover:shadow-elegant transition-all duration-300">
+                  <div className="h-48 overflow-hidden">
+                    <img
+                      src={field.image_url || heroPadel}
+                      alt={field.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <CardHeader>
+                    <CardTitle>{field.name}</CardTitle>
+                    <CardDescription className="line-clamp-2">{field.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-lg font-semibold text-primary">
+                      Rp {field.price_per_slot.toLocaleString('id-ID')} / Jam
+                    </p>
+                    <Button asChild className="w-full">
+                      <Link to="/booking">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Booking Sekarang
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {totalFields > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFieldPage(p => Math.max(1, p - 1))}
+                  disabled={fieldPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Halaman {fieldPage} dari {Math.ceil(totalFields / ITEMS_PER_PAGE)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFieldPage(p => Math.min(Math.ceil(totalFields / ITEMS_PER_PAGE), p + 1))}
+                  disabled={fieldPage >= Math.ceil(totalFields / ITEMS_PER_PAGE)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Articles Section */}
       {articles.length > 0 && (
         <section className="py-20">
@@ -135,7 +252,7 @@ const Home = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {articles.map((article) => (
                 <Card key={article.id} className="overflow-hidden hover:shadow-elegant transition-all duration-300">
                   <div className="h-48 overflow-hidden">
@@ -149,15 +266,46 @@ const Home = () => {
                     <CardTitle className="line-clamp-2">{article.title}</CardTitle>
                     <CardDescription className="line-clamp-3">{article.content}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex justify-between items-center">
                     <Button variant="link" className="p-0 h-auto font-semibold">
                       Baca Selengkapnya
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(article.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </span>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            {totalArticles > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setArticlePage(p => Math.max(1, p - 1))}
+                  disabled={articlePage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Halaman {articlePage} dari {Math.ceil(totalArticles / ITEMS_PER_PAGE)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setArticlePage(p => Math.min(Math.ceil(totalArticles / ITEMS_PER_PAGE), p + 1))}
+                  disabled={articlePage >= Math.ceil(totalArticles / ITEMS_PER_PAGE)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </section>
       )}

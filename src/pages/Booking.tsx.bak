@@ -1,9 +1,35 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader,               <div className="space-y-4">
+                <div>
+                  <Label htmlFor="duration">Durasi Booking</Label>
+                  <Select
+                    value={String(duration)}
+                    onValueChange={(value) => {
+                      setDuration(Number(value));
+                      setSelectedSlot(null); // Reset selected slot when duration changes
+                    }}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Jam</SelectItem>
+                      <SelectItem value="2">2 Jam</SelectItem>
+                      <SelectItem value="3">3 Jam</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                  {timeSlots.map((slot) => {
+                    const [hour] = slot.split(':').map(Number);
+                    const isLastSlots = hour > (22 - duration);
+                    const booked = isSlotBooked(slot);/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -16,12 +42,6 @@ interface Field {
   description: string | null;
   price_per_slot: number;
   image_url: string | null;
-}
-
-interface FieldAvailability {
-  fieldId: string;
-  availableSlots: number;
-  totalBookings: number;
 }
 
 interface Booking {
@@ -45,7 +65,6 @@ const Booking = () => {
   const [duration, setDuration] = useState<number>(1);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [fieldAvailability, setFieldAvailability] = useState<Record<string, FieldAvailability>>({});
 
   useEffect(() => {
     if (!user) {
@@ -63,52 +82,12 @@ const Booking = () => {
   }, [selectedField, selectedDate]);
 
   const fetchFields = async () => {
-    const { data: fieldsData } = await supabase
+    const { data } = await supabase
       .from('fields')
       .select('*')
       .eq('is_active', true);
     
-    if (fieldsData) {
-      setFields(fieldsData);
-      // Fetch availability for each field
-      fieldsData.forEach(field => {
-        fetchFieldAvailability(field.id);
-      });
-    }
-  };
-
-  const fetchFieldAvailability = async (fieldId: string) => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const { data: bookings } = await supabase
-      .from('bookings')
-      .select('start_time, end_time')
-      .eq('field_id', fieldId)
-      .eq('booking_date', today)
-      .neq('status', 'canceled');
-
-    if (bookings) {
-      const bookedHours = new Set<string>();
-      bookings.forEach((booking: Booking) => {
-        const startHour = parseInt(booking.start_time.slice(0, 2));
-        const endHour = parseInt(booking.end_time.slice(0, 2));
-        for (let hour = startHour; hour < endHour; hour++) {
-          bookedHours.add(String(hour));
-        }
-      });
-
-      // Calculate available slots (total slots - booked slots)
-      const totalSlots = timeSlots.length;
-      const availability: FieldAvailability = {
-        fieldId,
-        availableSlots: totalSlots - bookedHours.size,
-        totalBookings: bookings.length
-      };
-
-      setFieldAvailability(prev => ({
-        ...prev,
-        [fieldId]: availability
-      }));
-    }
+    if (data) setFields(data);
   };
 
   const fetchBookedSlots = async () => {
@@ -122,19 +101,8 @@ const Booking = () => {
       .neq('status', 'canceled');
 
     if (data) {
-      // Get all booked slots including duration
-      const bookedTimeSlots = new Set<string>();
-      data.forEach((booking: Booking) => {
-        const startHour = parseInt(booking.start_time.slice(0, 2));
-        const endHour = parseInt(booking.end_time.slice(0, 2));
-        
-        // Add all hours between start and end time
-        for (let hour = startHour; hour < endHour; hour++) {
-          bookedTimeSlots.add(`${String(hour).padStart(2, '0')}:00`);
-        }
-      });
-      
-      setBookedSlots(Array.from(bookedTimeSlots));
+      const booked = data.map((b: Booking) => b.start_time.slice(0, 5));
+      setBookedSlots(booked);
     }
   };
 
@@ -178,12 +146,10 @@ const Booking = () => {
   };
 
   const isSlotBooked = (slot: string) => {
-    const slotHour = parseInt(slot.split(':')[0]);
-    
     // Check if any slot within the duration is booked
+    const [hour] = slot.split(':').map(Number);
     for (let i = 0; i < duration; i++) {
-      const checkHour = slotHour + i;
-      const checkSlot = `${String(checkHour).padStart(2, '0')}:00`;
+      const checkSlot = `${String(hour + i).padStart(2, '0')}:00`;
       if (bookedSlots.includes(checkSlot)) {
         return true;
       }
@@ -218,33 +184,11 @@ const Booking = () => {
                       {field.description || 'Lapangan berkualitas'}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-2xl font-bold text-primary">
-                        Rp {field.price_per_slot.toLocaleString('id-ID')}
-                      </p>
-                      <p className="text-sm text-muted-foreground">per jam</p>
-                    </div>
-                    {fieldAvailability[field.id] && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Slot Tersedia:</span>
-                          <span className="font-medium">{fieldAvailability[field.id].availableSlots} jam</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Booking Hari Ini:</span>
-                          <span className="font-medium">{fieldAvailability[field.id].totalBookings}</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2 mt-2">
-                          <div
-                            className="bg-primary rounded-full h-2 transition-all"
-                            style={{
-                              width: `${(fieldAvailability[field.id].availableSlots / timeSlots.length) * 100}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <CardContent>
+                    <p className="text-2xl font-bold text-primary">
+                      Rp {field.price_per_slot.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-sm text-muted-foreground">per jam</p>
                   </CardContent>
                 </Card>
               ))}
@@ -275,50 +219,45 @@ const Booking = () => {
         {selectedField && selectedDate && (
           <Card className="mb-8 shadow-elegant">
             <CardHeader>
-              <CardTitle>3. Pilih Durasi & Waktu</CardTitle>
+              <CardTitle>3. Pilih Waktu</CardTitle>
               <CardDescription>
-                Pilih durasi dan waktu booking Anda
+                Waktu yang tersedia untuk {format(selectedDate, 'dd MMMM yyyy', { locale: id })}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <Label className="text-lg font-semibold mb-2 block">Durasi Booking</Label>
-                  <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3].map((hours) => (
-                      <Button
-                        key={hours}
-                        variant={duration === hours ? 'default' : 'outline'}
-                        onClick={() => setDuration(hours)}
-                        className="w-full py-6"
-                      >
-                        {hours} Jam
-                      </Button>
-                    ))}
-                  </div>
+                  <Label htmlFor="duration">Durasi Booking</Label>
+                  <Select
+                    value={String(duration)}
+                    onValueChange={(value) => setDuration(Number(value))}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Jam</SelectItem>
+                      <SelectItem value="2">2 Jam</SelectItem>
+                      <SelectItem value="3">3 Jam</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <Label className="text-lg font-semibold mb-2 block">Pilih Waktu Mulai</Label>
-                  <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
-                    {timeSlots.map((slot) => {
-                      const [hour] = slot.split(':').map(Number);
-                      const isLastSlots = hour > (22 - duration);
-                      const booked = isSlotBooked(slot);
-                      return (
-                        <Button
-                          key={slot}
-                          variant={selectedSlot === slot ? 'default' : 'outline'}
-                          disabled={booked || isLastSlots}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`${booked || isLastSlots ? 'opacity-50' : ''} transition-all duration-300`}
-                        >
-                          {slot}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                  {timeSlots.map((slot) => {
+                  const booked = isSlotBooked(slot);
+                  return (
+                    <Button
+                      key={slot}
+                      variant={selectedSlot === slot ? 'default' : 'outline'}
+                      disabled={booked || isLastSlots}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`${booked || isLastSlots ? 'opacity-50' : ''} transition-all duration-300`}
+                    >
+                      {slot}
+                    </Button>
+                  );
+                })}
               </div>
               
               {bookedSlots.length > 0 && (
@@ -358,10 +297,6 @@ const Booking = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Waktu:</span>
                   <span className="font-semibold">{selectedSlot} - {String(parseInt(selectedSlot.split(':')[0]) + duration).padStart(2, '0')}:00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Durasi:</span>
-                  <span className="font-semibold">{duration} Jam</span>
                 </div>
                 <div className="pt-4 border-t flex justify-between items-center">
                   <span className="text-lg font-semibold">Total:</span>
