@@ -17,6 +17,7 @@ import AdminBookings from "./pages/admin/AdminBookings";
 import AdminArticles from "./pages/admin/AdminArticles";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminFinancial from "./pages/admin/AdminFinancial";
+import ArticlePage from "./pages/ArticlePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="articles" element={<AdminArticles />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
+            <Route path="/articles/:id" element={<ArticlePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
