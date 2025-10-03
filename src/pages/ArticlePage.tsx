@@ -14,10 +14,10 @@ interface Article {
   image_url: string
   created_at: string
   slug: string
+  created_by: string
   author: {
     full_name: string
   }
-  created_by: string
 }
 
 export default function ArticlePage() {
@@ -28,7 +28,7 @@ export default function ArticlePage() {
   useEffect(() => {
     async function fetchArticle() {
       try {
-        const { data: articleData, error: articleError } = await supabase
+        let query = supabase
           .from('articles')
           .select(`
             *,
@@ -36,8 +36,17 @@ export default function ArticlePage() {
               full_name
             )
           `)
-          .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
-          .single()
+
+        // regex cek apakah UUID valid
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(slugOrId!)
+
+        if (isUUID) {
+          query = query.eq('id', slugOrId)
+        } else {
+          query = query.eq('slug', slugOrId)
+        }
+
+        const { data: articleData, error: articleError } = await query.single()
 
         if (articleError) throw articleError
         setArticle(articleData)
@@ -48,7 +57,7 @@ export default function ArticlePage() {
       }
     }
 
-    fetchArticle()
+    if (slugOrId) fetchArticle()
   }, [slugOrId])
 
   if (loading) {
@@ -110,7 +119,7 @@ export default function ArticlePage() {
       )}
 
       <div className="prose prose-lg max-w-none">
-        {article.content.split('\\n').map((paragraph, index) => (
+        {article.content.split('\n').map((paragraph, index) => (
           <p key={index}>{paragraph}</p>
         ))}
       </div>
