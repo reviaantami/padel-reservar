@@ -181,6 +181,25 @@ const AdminSettings = () => {
               </div>
             </div>
           </form>
+
+          <form onSubmit={handleSubmit('webhook_registration')} className="space-y-4">
+            <div>
+              <Label htmlFor="webhook_registration">Webhook URL untuk Pendaftaran User Baru</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="webhook_registration"
+                  type="url"
+                  value={settings.webhook_registration || ''}
+                  onChange={(e) => setSettings({ ...settings, webhook_registration: e.target.value })}
+                  placeholder="https://n8n.example.com/webhook/registration"
+                />
+                <Button type="submit" disabled={loading}>Simpan</Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Webhook ini akan dipanggil saat user baru mendaftar
+              </p>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
