@@ -17,6 +17,7 @@ interface Booking {
   status: string;
   user_id: string;
   fields: { name: string };
+  profiles: { full_name: string };
 }
 
 const AdminBookings = () => {
@@ -29,7 +30,7 @@ const AdminBookings = () => {
   const fetchBookings = async () => {
     const { data } = await supabase
       .from('bookings')
-      .select('*, fields(name)')
+      .select('*, fields(name), profiles!bookings_user_id_fkey(full_name)')
       .order('booking_date', { ascending: false });
     
     if (data) setBookings(data);
@@ -85,7 +86,7 @@ const AdminBookings = () => {
               <TableBody>
                 {bookings.map((booking) => (
                   <TableRow key={booking.id}>
-                    <TableCell>{booking.user_id.slice(0, 8)}...</TableCell>
+                    <TableCell>{booking.profiles?.full_name || 'User tidak ditemukan'}</TableCell>
                     <TableCell>{booking.fields.name}</TableCell>
                     <TableCell>
                       {format(new Date(booking.booking_date), 'dd MMM yyyy', { locale: id })}
