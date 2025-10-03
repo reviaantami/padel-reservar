@@ -16,6 +16,7 @@ import AdminFields from "./pages/admin/AdminFields";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminArticles from "./pages/admin/AdminArticles";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminFinancial from "./pages/admin/AdminFinancial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="fields" element={<AdminFields />} />
               <Route path="bookings" element={<AdminBookings />} />
+              <Route path="financial" element={<AdminFinancial />} />
               <Route path="articles" element={<AdminArticles />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
