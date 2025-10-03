@@ -17,6 +17,7 @@ interface Article {
   author: {
     full_name: string
   }
+  created_by: string
 }
 
 export default function ArticlePage() {
@@ -31,7 +32,7 @@ export default function ArticlePage() {
           .from('articles')
           .select(`
             *,
-            author:user_id (
+            author:profiles!articles_created_by_fkey (
               full_name
             )
           `)
