@@ -18,6 +18,7 @@ interface Transaction {
 
 export default function AdminFinancial() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -97,36 +98,41 @@ export default function AdminFinancial() {
               variant="outline"
               size="sm"
               onClick={() => {
-                // Create CSV content
-                const csvContent = [
+                // Create Excel-compatible content with tab separation
+                const xlsContent = [
                   ["Tanggal", "Customer", "Jumlah", "Status"],
-                  ...transactions.map(t => [
+                  ...filteredTransactions.map(t => [
                     format(new Date(t.date), "dd/MM/yyyy"),
                     t.customerName,
                     t.amount.toString(),
                     t.status
                   ])
                 ]
-                .map(row => row.join(","))
-                .join("\\n")
+                .map(row => row.join("\t"))
+                .join("\n")
 
-                // Create and trigger download
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                // Add BOM for Excel to recognize UTF-8
+                const BOM = "\ufeff"
+                const blob = new Blob([BOM + xlsContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
                 const link = document.createElement("a")
                 const url = URL.createObjectURL(blob)
                 link.setAttribute("href", url)
-                link.setAttribute("download", `transactions-${format(new Date(), "yyyy-MM-dd")}.csv`)
+                link.setAttribute("download", `transactions-${format(new Date(), "yyyy-MM-dd")}.xls`)
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
+                URL.revokeObjectURL(url)
               }}
             >
               <Download className="mr-2 h-4 w-4" />
-              Export CSV
+              Export Excel
             </Button>
           </CardHeader>
           <CardContent>
-            <FinancialTable transactions={transactions} />
+            <FinancialTable 
+              transactions={transactions} 
+              onFilterChange={setFilteredTransactions} 
+            />
           </CardContent>
         </Card>
       </div>

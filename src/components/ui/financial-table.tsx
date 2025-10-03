@@ -32,16 +32,29 @@ interface Transaction {
 
 interface FinancialTableProps {
   transactions: Transaction[]
+  onFilterChange?: (filteredData: Transaction[]) => void
 }
 
-export function FinancialTable({ transactions }: FinancialTableProps) {
+export function FinancialTable({ transactions, onFilterChange }: FinancialTableProps) {
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   })
 
   const filteredTransactions = React.useMemo(() => {
-    if (!date?.from) return transactions
+    const filtered = !date?.from ? transactions : transactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date)
+      if (date.from && date.to) {
+        const endDate = new Date(date.to)
+        endDate.setDate(endDate.getDate() + 1)
+        return transactionDate >= date.from && transactionDate <= endDate
+      }
+      return transactionDate >= date.from
+    })
+
+    // Notify parent component about filtered data
+    onFilterChange?.(filtered)
+    return filtered
 
     return transactions.filter((transaction) => {
       const transactionDate = new Date(transaction.date)
