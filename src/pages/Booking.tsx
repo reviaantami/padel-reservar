@@ -1,9 +1,35 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader,               <div className="space-y-4">
+                <div>
+                  <Label htmlFor="duration">Durasi Booking</Label>
+                  <Select
+                    value={String(duration)}
+                    onValueChange={(value) => {
+                      setDuration(Number(value));
+                      setSelectedSlot(null); // Reset selected slot when duration changes
+                    }}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Jam</SelectItem>
+                      <SelectItem value="2">2 Jam</SelectItem>
+                      <SelectItem value="3">3 Jam</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                  {timeSlots.map((slot) => {
+                    const [hour] = slot.split(':').map(Number);
+                    const isLastSlots = hour > (22 - duration);
+                    const booked = isSlotBooked(slot);/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -36,6 +62,7 @@ const Booking = () => {
   const [selectedField, setSelectedField] = useState<Field | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [duration, setDuration] = useState<number>(1);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -86,7 +113,7 @@ const Booking = () => {
     try {
       const startTime = selectedSlot;
       const [hour] = startTime.split(':').map(Number);
-      const endTime = `${String(hour + 1).padStart(2, '0')}:00`;
+      const endTime = `${String(hour + duration).padStart(2, '0')}:00`;
 
       const { error } = await supabase
         .from('bookings')
@@ -96,7 +123,7 @@ const Booking = () => {
           booking_date: format(selectedDate, 'yyyy-MM-dd'),
           start_time: startTime,
           end_time: endTime,
-          total_amount: selectedField.price_per_slot,
+          total_amount: selectedField.price_per_slot * duration,
           status: 'pending',
         });
 
@@ -108,7 +135,7 @@ const Booking = () => {
           fieldName: selectedField.name,
           date: format(selectedDate, 'dd MMMM yyyy', { locale: id }),
           time: `${startTime} - ${endTime}`,
-          amount: selectedField.price_per_slot,
+          amount: selectedField.price_per_slot * duration,
         }
       });
     } catch (error: any) {
@@ -118,7 +145,17 @@ const Booking = () => {
     }
   };
 
-  const isSlotBooked = (slot: string) => bookedSlots.includes(slot);
+  const isSlotBooked = (slot: string) => {
+    // Check if any slot within the duration is booked
+    const [hour] = slot.split(':').map(Number);
+    for (let i = 0; i < duration; i++) {
+      const checkSlot = `${String(hour + i).padStart(2, '0')}:00`;
+      if (bookedSlots.includes(checkSlot)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 bg-gradient-to-br from-background via-background to-primary/5">
@@ -188,16 +225,34 @@ const Booking = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
-                {timeSlots.map((slot) => {
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="duration">Durasi Booking</Label>
+                  <Select
+                    value={String(duration)}
+                    onValueChange={(value) => setDuration(Number(value))}
+                  >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Jam</SelectItem>
+                      <SelectItem value="2">2 Jam</SelectItem>
+                      <SelectItem value="3">3 Jam</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                  {timeSlots.map((slot) => {
                   const booked = isSlotBooked(slot);
                   return (
                     <Button
                       key={slot}
                       variant={selectedSlot === slot ? 'default' : 'outline'}
-                      disabled={booked}
+                      disabled={booked || isLastSlots}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`${booked ? 'opacity-50' : ''} transition-all duration-300`}
+                      className={`${booked || isLastSlots ? 'opacity-50' : ''} transition-all duration-300`}
                     >
                       {slot}
                     </Button>
@@ -241,12 +296,12 @@ const Booking = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Waktu:</span>
-                  <span className="font-semibold">{selectedSlot} - {String(parseInt(selectedSlot.split(':')[0]) + 1).padStart(2, '0')}:00</span>
+                  <span className="font-semibold">{selectedSlot} - {String(parseInt(selectedSlot.split(':')[0]) + duration).padStart(2, '0')}:00</span>
                 </div>
                 <div className="pt-4 border-t flex justify-between items-center">
                   <span className="text-lg font-semibold">Total:</span>
                   <span className="text-2xl font-bold text-primary">
-                    Rp {selectedField.price_per_slot.toLocaleString('id-ID')}
+                    Rp {(selectedField.price_per_slot * duration).toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>
