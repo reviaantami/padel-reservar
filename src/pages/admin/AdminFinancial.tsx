@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { FinancialTable } from '@/components/ui/financial-table'
+import { RevenueChart } from '@/components/ui/revenue-chart'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Transaction {
   id: string
@@ -76,7 +78,21 @@ export default function AdminFinancial() {
         </p>
       </div>
 
-      <FinancialTable transactions={transactions} />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="col-span-4">
+          <RevenueChart transactions={transactions} />
+        </div>
+        <div className="col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FinancialTable transactions={transactions} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }
