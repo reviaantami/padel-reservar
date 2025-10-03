@@ -75,8 +75,19 @@ const Booking = () => {
       .neq('status', 'canceled');
 
     if (data) {
-      const booked = data.map((b: Booking) => b.start_time.slice(0, 5));
-      setBookedSlots(booked);
+      // Get all booked slots including duration
+      const bookedTimeSlots = new Set<string>();
+      data.forEach((booking: Booking) => {
+        const startHour = parseInt(booking.start_time.slice(0, 2));
+        const endHour = parseInt(booking.end_time.slice(0, 2));
+        
+        // Add all hours between start and end time
+        for (let hour = startHour; hour < endHour; hour++) {
+          bookedTimeSlots.add(`${String(hour).padStart(2, '0')}:00`);
+        }
+      });
+      
+      setBookedSlots(Array.from(bookedTimeSlots));
     }
   };
 
@@ -119,7 +130,19 @@ const Booking = () => {
     }
   };
 
-  const isSlotBooked = (slot: string) => bookedSlots.includes(slot);
+  const isSlotBooked = (slot: string) => {
+    const slotHour = parseInt(slot.split(':')[0]);
+    
+    // Check if any slot within the duration is booked
+    for (let i = 0; i < duration; i++) {
+      const checkHour = slotHour + i;
+      const checkSlot = `${String(checkHour).padStart(2, '0')}:00`;
+      if (bookedSlots.includes(checkSlot)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 bg-gradient-to-br from-background via-background to-primary/5">
