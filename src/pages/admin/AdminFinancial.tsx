@@ -23,14 +23,13 @@ export default function AdminFinancial() {
           .select(`
             id,
             created_at,
-            total_price,
-            payment_status,
+            total_amount,
+            status,
             user_id,
-            users:user_id (
+            profiles!bookings_user_id_fkey (
               full_name
             )
           `)
-          .not('payment_status', 'is', null)
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -39,10 +38,10 @@ export default function AdminFinancial() {
         const transformedData: Transaction[] = data.map(booking => ({
           id: booking.id,
           date: booking.created_at,
-          customerName: booking.users?.full_name || 'Unknown',
-          amount: booking.total_price,
-          status: booking.payment_status === 'success' ? 'paid' : 
-                 booking.payment_status === 'pending' ? 'pending' : 'cancelled'
+          customerName: booking.profiles?.full_name || 'Unknown',
+          amount: booking.total_amount,
+          status: booking.status === 'paid' ? 'paid' : 
+                 booking.status === 'pending' ? 'pending' : 'cancelled'
         }))
 
         setTransactions(transformedData)
