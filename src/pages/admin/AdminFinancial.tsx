@@ -98,22 +98,47 @@ export default function AdminFinancial() {
               variant="outline"
               size="sm"
               onClick={() => {
-                // Create Excel-compatible content with tab separation
-                const xlsContent = [
-                  ["Tanggal", "Customer", "Jumlah", "Status"],
-                  ...filteredTransactions.map(t => [
-                    format(new Date(t.date), "dd/MM/yyyy"),
-                    t.customerName,
-                    t.amount.toString(),
-                    t.status
-                  ])
-                ]
-                .map(row => row.join("\t"))
-                .join("\n")
+                // Create Excel-compatible HTML table
+                const tableHtml = `
+                  <html>
+                    <head>
+                      <meta charset="UTF-8">
+                      <style>
+                        td, th {
+                          border: 1px solid #000000;
+                          padding: 5px;
+                        }
+                        table {
+                          border-collapse: collapse;
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Tanggal</th>
+                            <th>Customer</th>
+                            <th>Jumlah</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${filteredTransactions.map(t => `
+                            <tr>
+                              <td>${format(new Date(t.date), "dd/MM/yyyy")}</td>
+                              <td>${t.customerName}</td>
+                              <td>Rp ${t.amount.toLocaleString('id-ID')}</td>
+                              <td>${t.status}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </body>
+                  </html>
+                `
 
-                // Add BOM for Excel to recognize UTF-8
-                const BOM = "\ufeff"
-                const blob = new Blob([BOM + xlsContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
+                const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' })
                 const link = document.createElement("a")
                 const url = URL.createObjectURL(blob)
                 link.setAttribute("href", url)
