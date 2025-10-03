@@ -14,6 +14,9 @@ interface Article {
   image_url: string | null;
   created_at: string;
   slug: string;
+  author?: {
+    full_name: string;
+  };
 }
 
 interface Field {
@@ -38,31 +41,40 @@ const Home = () => {
 
   useEffect(() => {
     fetchArticles(articlePage);
-    fetchFields(fieldPage);
-    fetchHeroBanner();
-  }, [articlePage, fieldPage]);
-
-  const fetchArticles = async (page: number) => {
-    const from = (page - 1) * ITEMS_PER_PAGE;
-    const to = from + ITEMS_PER_PAGE - 1;
-
-    const [{ data: articles, count }, { data: total }] = await Promise.all([
-      supabase
+        fetchFields(fieldPage);
+        fetchHeroBanner();
+      }, [articlePage, fieldPage]);
+    
+      const fetchArticles = async (page: number) => {
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+    
+      const { data: articles, count, error } = await supabase
         .from('articles')
-        .select('*', { count: 'exact' })
+        .select(`
+          id,
+          title,
+          content,
+          image_url,
+          created_at,
+          slug,
+          author:profiles!articles_created_by_fkey (
+            full_name
+          )
+        `, { count: 'exact' })
         .eq('is_published', true)
         .order('created_at', { ascending: false })
-        .range(from, to),
-      supabase
-        .from('articles')
-        .select('count', { count: 'exact' })
-        .eq('is_published', true)
-        .single()
-    ]);
+        .range(from, to);
     
-    if (articles) setArticles(articles);
-    if (count) setTotalArticles(count);
-  };
+      if (error) {
+        console.error("Error fetch articles:", error);
+        return;
+      }
+    
+      if (articles) setArticles(articles);
+      if (count) setTotalArticles(count);
+    };
+
 
   const fetchFields = async (page: number) => {
     const from = (page - 1) * ITEMS_PER_PAGE;
@@ -268,17 +280,14 @@ const Home = () => {
                       <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
                         {article.title}
                       </CardTitle>
-                      <CardDescription className="line-clamp-3">{article.content}</CardDescription>
+                      <CardDescription className="line-clamp-3">
+                        {article.content}
+                      </CardDescription>
                     </CardHeader>
                   </Link>
-                  <CardContent className="flex justify-between items-center">
-                    <Button variant="link" className="p-0 h-auto font-semibold" asChild>
-                      <Link to={`/articles/${article.slug}`}>
-                        Baca Selengkapnya
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
+                  <CardContent className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>{article.author?.full_name || "Anonymous"}</span>
+                    <span>
                       {new Date(article.created_at).toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'short',
@@ -289,6 +298,7 @@ const Home = () => {
                 </Card>
               ))}
             </div>
+
 
             {totalArticles > ITEMS_PER_PAGE && (
               <div className="flex items-center justify-center gap-2 mt-8">
