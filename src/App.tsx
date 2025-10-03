@@ -44,7 +44,7 @@ const App = () => (
               <Route path="articles" element={<AdminArticles />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
-            <Route path="/articles/:id" element={<ArticlePage />} />
+            <Route path="/articles/:id" element={<ArticlePage />} /> {/* :id can be either slug or id */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

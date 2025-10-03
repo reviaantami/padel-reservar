@@ -13,6 +13,7 @@ interface Article {
   content: string;
   image_url: string | null;
   created_at: string;
+  slug: string;
 }
 
 interface Field {
@@ -255,7 +256,7 @@ const Home = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {articles.map((article) => (
                 <Card key={article.id} className="overflow-hidden hover:shadow-elegant transition-all duration-300">
-                  <Link to={`/articles/${article.id}`} className="block group">
+                  <Link to={`/articles/${article.slug}`} className="block group">
                     <div className="h-48 overflow-hidden">
                       <img
                         src={article.image_url || articlePadel}
@@ -272,7 +273,7 @@ const Home = () => {
                   </Link>
                   <CardContent className="flex justify-between items-center">
                     <Button variant="link" className="p-0 h-auto font-semibold" asChild>
-                      <Link to={`/articles/${article.id}`}>
+                      <Link to={`/articles/${article.slug}`}>
                         Baca Selengkapnya
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>

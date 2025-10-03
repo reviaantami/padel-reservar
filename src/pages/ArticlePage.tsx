@@ -13,20 +13,21 @@ interface Article {
   content: string
   image_url: string
   created_at: string
+  slug: string
   author: {
     full_name: string
   }
 }
 
 export default function ArticlePage() {
-  const { id } = useParams()
+  const { id: slugOrId } = useParams()
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchArticle() {
       try {
-        const { data, error } = await supabase
+        const { data: articleData, error: articleError } = await supabase
           .from('articles')
           .select(`
             *,
@@ -34,11 +35,11 @@ export default function ArticlePage() {
               full_name
             )
           `)
-          .eq('id', id)
+          .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
           .single()
 
-        if (error) throw error
-        setArticle(data)
+        if (articleError) throw articleError
+        setArticle(articleData)
       } catch (error) {
         console.error('Error fetching article:', error)
       } finally {
@@ -47,7 +48,7 @@ export default function ArticlePage() {
     }
 
     fetchArticle()
-  }, [id])
+  }, [slugOrId])
 
   if (loading) {
     return (
