@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { MapPin, Calendar, FileText, Settings, LayoutDashboard } from 'lucide-react';
+import { MapPin, Calendar, FileText, Settings, LayoutDashboard, Receipt } from 'lucide-react';
 
 const AdminLayout = () => {
   const { isAdmin, loading } = useAuth();
@@ -29,6 +29,7 @@ const AdminLayout = () => {
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/fields', icon: MapPin, label: 'Lapangan' },
     { path: '/admin/bookings', icon: Calendar, label: 'Booking' },
+    { path: '/admin/financial', icon: Receipt, label: 'Keuangan' },
     { path: '/admin/articles', icon: FileText, label: 'Artikel' },
     { path: '/admin/settings', icon: Settings, label: 'Pengaturan' },
   ];
