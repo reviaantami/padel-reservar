@@ -29,6 +29,7 @@ export default function AdminFinancial() {
               full_name
             )
           `)
+          .not('payment_status', 'is', null)
           .order('created_at', { ascending: false })
 
         if (error) throw error

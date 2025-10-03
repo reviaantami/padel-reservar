@@ -46,7 +46,10 @@ export function FinancialTable({ transactions }: FinancialTableProps) {
     return transactions.filter((transaction) => {
       const transactionDate = new Date(transaction.date)
       if (date.from && date.to) {
-        return transactionDate >= date.from && transactionDate <= date.to
+        // Add one day to include transactions from the end date
+        const endDate = new Date(date.to)
+        endDate.setDate(endDate.getDate() + 1)
+        return transactionDate >= date.from && transactionDate <= endDate
       }
       return transactionDate >= date.from
     })
