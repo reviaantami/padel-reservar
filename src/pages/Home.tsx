@@ -255,21 +255,27 @@ const Home = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {articles.map((article) => (
                 <Card key={article.id} className="overflow-hidden hover:shadow-elegant transition-all duration-300">
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={article.image_url || articlePadel}
-                      alt={article.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{article.title}</CardTitle>
-                    <CardDescription className="line-clamp-3">{article.content}</CardDescription>
-                  </CardHeader>
+                  <Link to={`/articles/${article.id}`} className="block group">
+                    <div className="h-48 overflow-hidden">
+                      <img
+                        src={article.image_url || articlePadel}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
+                        {article.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-3">{article.content}</CardDescription>
+                    </CardHeader>
+                  </Link>
                   <CardContent className="flex justify-between items-center">
-                    <Button variant="link" className="p-0 h-auto font-semibold">
-                      Baca Selengkapnya
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button variant="link" className="p-0 h-auto font-semibold" asChild>
+                      <Link to={`/articles/${article.id}`}>
+                        Baca Selengkapnya
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
                     </Button>
                     <span className="text-sm text-muted-foreground">
                       {new Date(article.created_at).toLocaleDateString('id-ID', {
