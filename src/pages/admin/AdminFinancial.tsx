@@ -18,25 +18,35 @@ export default function AdminFinancial() {
     async function fetchTransactions() {
       try {
         // Fetch bookings with their related payment information
-        const { data, error } = await supabase
+        // Get all bookings first
+        const { data: bookingsData, error: bookingsError } = await supabase
           .from('bookings')
-          .select(`
-            id,
-            created_at,
-            total_amount,
-            status,
-            user_id,
-            auth.users!bookings_user_id_fkey (
-              email
-            )
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
+
+        if (bookingsError) throw bookingsError
+
+        // Get all profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+
+        if (profilesError) throw profilesError
+
+        // Combine the data
+        const data = bookingsData.map(booking => {
+          const profile = profilesData.find(p => p.id === booking.user_id)
+          return {
+            ...booking,
+            userProfile: profile
+          }
+        })
 
         // Transform the data to match our Transaction interface
         const transformedData: Transaction[] = data.map(booking => ({
           id: booking.id,
           date: booking.created_at,
-          customerName: booking.users?.email || 'Unknown',
+          customerName: booking.userProfile?.full_name || 'Unknown',
           amount: booking.total_amount,
           status: booking.status === 'paid' ? 'paid' : 
                  booking.status === 'pending' ? 'pending' : 'cancelled'
