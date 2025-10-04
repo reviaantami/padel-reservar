@@ -139,43 +139,83 @@ const Booking = () => {
   };
 
   const handleBooking = async () => {
-    if (!selectedField || !selectedDate || !selectedSlot || !user) return;
-
-    setLoading(true);
-    try {
-      const startTime = selectedSlot;
-      const [hour] = startTime.split(':').map(Number);
-      const endTime = `${String(hour + duration).padStart(2, '0')}:00`;
-
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          field_id: selectedField.id,
-          booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          start_time: startTime,
-          end_time: endTime,
-          total_amount: selectedField.price_per_slot * duration,
-          status: 'pending',
-        });
-
-      if (error) throw error;
-
-      toast.success('Booking berhasil! Silakan lakukan pembayaran');
-      navigate('/payment', {
-        state: {
-          fieldName: selectedField.name,
-          date: format(selectedDate, 'dd MMMM yyyy', { locale: id }),
-          time: `${startTime} - ${endTime}`,
-          amount: selectedField.price_per_slot * duration,
+      if (!selectedField || !selectedDate || !selectedSlot || !user) return;
+    
+      setLoading(true);
+      try {
+        const startTime = selectedSlot;
+        const [hour] = startTime.split(':').map(Number);
+        const endTime = `${String(hour + duration).padStart(2, '0')}:00`;
+    
+        // 1. Insert booking ke supabase
+        const { data, error } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: user.id,
+            field_id: selectedField.id,
+            booking_date: format(selectedDate, 'yyyy-MM-dd'),
+            start_time: startTime,
+            end_time: endTime,
+            total_amount: selectedField.price_per_slot * duration,
+            status: 'pending',
+          })
+          .select()
+          .single(); // biar dapat data booking yang baru disimpan
+        
+        if (error) throw error;
+        
+        // 2. Ambil webhook_booking dari settings
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'webhook_booking')
+          .single();
+        
+        if (settingsData?.value) {
+          // 🔑 Ambil profile user dari tabel profiles
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', user.id) // FIXED
+            .single();
+        
+          if (profileError) console.error(profileError);
+        
+          // 3. Kirim data booking ke webhook n8n
+          await fetch(settingsData.value, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              booking: data,
+              user: {
+                id: user.id,
+                email: user.email,
+                full_name: profileData?.full_name || '',
+                phone: profileData?.phone || '',
+              },
+              field: selectedField,
+            }),
+          });
         }
-      });
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal melakukan booking');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
+    
+        toast.success('Booking berhasil! Silakan lakukan pembayaran');
+        navigate('/payment', {
+          state: {
+            fieldName: selectedField.name,
+            date: format(selectedDate, 'dd MMMM yyyy', { locale: id }),
+            time: `${startTime} - ${endTime}`,
+            amount: selectedField.price_per_slot * duration,
+          }
+        });
+      } catch (error: any) {
+        toast.error(error.message || 'Gagal melakukan booking');
+      } finally {
+        setLoading(false);
+      }
+    };
+
 
   const isSlotBooked = (slot: string) => {
     const slotHour = parseInt(slot.split(':')[0]);
