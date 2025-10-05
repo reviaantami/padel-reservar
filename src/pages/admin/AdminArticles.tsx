@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,16 @@ interface Article {
   image_url: string | null;
   image_path?: string | null;
   is_published: boolean;
+  created_by?: string;
+}
+
+interface ArticlePayload {
+  title: string;
+  content: string;
+  image_url: string | null;
+  image_path: string | null;
+  is_published: boolean;
+  created_by?: string;
 }
 
 const AdminArticles = () => {
@@ -44,7 +54,7 @@ const AdminArticles = () => {
     if (data) setArticles(data);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     try {
@@ -57,7 +67,7 @@ const AdminArticles = () => {
         imagePath = uploadResult.path;
       }
 
-      const payload = {
+      const articlePayload: ArticlePayload = {
         title: formData.title,
         content: formData.content,
         image_url: imageUrl || null,
@@ -65,6 +75,32 @@ const AdminArticles = () => {
         is_published: formData.is_published,
         ...(editingArticle ? {} : { created_by: user?.id }),
       };
+
+      if (editingArticle) {
+        const { error } = await supabase.from('articles').update(articlePayload).eq('id', editingArticle.id);
+        if (error) {
+          toast.error('Gagal mengupdate artikel');
+          return;
+        }
+        toast.success('Artikel berhasil diupdate');
+        setDialogOpen(false);
+        fetchArticles();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('articles').insert(articlePayload);
+        if (error) {
+          toast.error('Gagal menambahkan artikel');
+          return;
+        }
+        toast.success('Artikel berhasil ditambahkan');
+        setDialogOpen(false);
+        fetchArticles();
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Terjadi kesalahan saat memproses artikel');
+    }
 
     if (editingArticle) {
       const { error } = await supabase.from('articles').update(payload).eq('id', editingArticle.id);
