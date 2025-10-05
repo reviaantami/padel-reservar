@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
+import ProfilePage from "./pages/ProfilePage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminFields from "./pages/admin/AdminFields";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/booking" element={<Booking />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="fields" element={<AdminFields />} />
@@ -43,6 +45,7 @@ const App = () => (
               <Route path="financial" element={<AdminFinancial />} />
               <Route path="articles" element={<AdminArticles />} />
               <Route path="settings" element={<AdminSettings />} />
+              
             </Route>
             <Route path="/articles/:id" element={<ArticlePage />} /> {/* :id can be either slug or id */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
