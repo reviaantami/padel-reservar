@@ -64,6 +64,7 @@ const AdminBookings = () => {
   };
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
+<<<<<<< HEAD
     const { data: updatedBooking, error } = await supabase
       .from('bookings')
       .update({ status: newStatus })
@@ -106,6 +107,54 @@ const AdminBookings = () => {
     toast.success('Status berhasil diupdate');
     fetchBookings();
   };
+=======
+      // 1. Update status booking di Supabase
+      const { data: updatedBooking, error } = await supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', bookingId)
+        .select('*, fields(name), profiles(full_name, phone)')
+        .single();
+    
+      if (error) {
+        toast.error('Gagal mengupdate status');
+        return;
+      }
+    
+      // 2. Ambil webhook_booking dari tabel settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'webhook_booking')
+        .single();
+    
+      if (settingsData?.value && updatedBooking) {
+        // 3. Kirim data booking ke webhook n8n
+        try {
+          await fetch(settingsData.value, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              booking: updatedBooking,
+              user: {
+                id: updatedBooking.user_id,
+                full_name: updatedBooking.profiles?.full_name || '',
+                phone: updatedBooking.profiles?.phone || '',
+              },
+              field: updatedBooking.fields,
+              status: newStatus,
+            }),
+          });
+        } catch (err) {
+          console.error('Webhook error:', err);
+        }
+      }
+    
+      toast.success('Status berhasil diupdate');
+      fetchBookings();
+    };
+
+>>>>>>> 408d0826222ffa67c489b4847dfbe0633ebed972
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
