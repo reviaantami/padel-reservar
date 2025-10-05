@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,15 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash, Upload } from 'lucide-react';
+import { uploadImage } from '@/lib/upload';
 
 interface Article {
   id: string;
   title: string;
   content: string;
   image_url: string | null;
+  image_path?: string | null;
   is_published: boolean;
 }
 
@@ -30,6 +32,8 @@ const AdminArticles = () => {
     image_url: '',
     is_published: true,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchArticles();
@@ -42,14 +46,25 @@ const AdminArticles = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    try {
+      let imageUrl = formData.image_url;
+      let imagePath = null;
 
-    const payload = {
-      title: formData.title,
-      content: formData.content,
-      image_url: formData.image_url || null,
-      is_published: formData.is_published,
-      ...(editingArticle ? {} : { created_by: user?.id }),
-    };
+      if (selectedImage) {
+        const uploadResult = await uploadImage(selectedImage);
+        imageUrl = uploadResult.url;
+        imagePath = uploadResult.path;
+      }
+
+      const payload = {
+        title: formData.title,
+        content: formData.content,
+        image_url: imageUrl || null,
+        image_path: imagePath,
+        is_published: formData.is_published,
+        ...(editingArticle ? {} : { created_by: user?.id }),
+      };
 
     if (editingArticle) {
       const { error } = await supabase.from('articles').update(payload).eq('id', editingArticle.id);
@@ -82,6 +97,8 @@ const AdminArticles = () => {
       image_url: article.image_url || '',
       is_published: article.is_published,
     });
+    setSelectedImage(null);
+    setImagePreview(article.image_url);
     setDialogOpen(true);
   };
 
@@ -100,6 +117,8 @@ const AdminArticles = () => {
   const resetForm = () => {
     setEditingArticle(null);
     setFormData({ title: '', content: '', image_url: '', is_published: true });
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   return (
@@ -137,15 +156,32 @@ const AdminArticles = () => {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="image">URL Gambar</Label>
-                <Input
-                  id="image"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                />
+              <div className="space-y-4">
+                <Label htmlFor="image">Gambar Artikel</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedImage(file);
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold hover:file:bg-accent"
+                  />
+                </div>
+                {(imagePreview || formData.image_url) && (
+                  <div className="relative w-full aspect-video">
+                    <img
+                      src={imagePreview || formData.image_url}
+                      alt="Preview"
+                      className="rounded-lg object-cover w-full h-full"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
